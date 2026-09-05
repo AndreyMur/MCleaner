@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
+import FullscreenButton from "./FullscreenButton";
 import JournalPanel from "./JournalPanel";
 import ThemeToggle from "./ThemeToggle";
 
@@ -40,6 +41,7 @@ const Layout = () => {
         </div>
         <div className="sidebar-footer">
           <ThemeToggle />
+          <FullscreenButton />
         </div>
       </aside>
       <div className="app-content">
