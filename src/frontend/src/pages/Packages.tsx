@@ -240,14 +240,7 @@ const Packages = () => {
             </tr>
           </thead>
           <tbody>
-            {loading && !packages && (
-              <tr>
-                <td className="col-toggle"></td>
-                <td colSpan={4} className="col-name">
-                  <div className="loading-skeleton skeleton-text" style={{ width: "100%" }}></div>
-                </td>
-              </tr>
-            )}
+            {loading && !packages && <TableSkeleton rows={8} />}
             {!loading &&
               filtered.map((pkg) => (
                 <PackageRows
@@ -290,6 +283,38 @@ interface PackageRowsProps {
   onToggle: (name: string) => void;
   onRemove: (pkg: InstalledPackage) => void;
 }
+
+const TableSkeleton = ({ rows }: { rows: number }) => (
+  <>
+    {Array.from({ length: rows }, (_, index) => (
+      <tr className="pkg-skeleton-row" aria-hidden="true" key={index} data-testid="packages-skeleton">
+        <td className="col-toggle">
+          <span
+            className="loading-skeleton"
+            style={{ display: "block", width: 18, height: 18, borderRadius: 6 }}
+          ></span>
+        </td>
+        <td className="col-name">
+          <div className="loading-skeleton skeleton-text" style={{ width: "45%", minWidth: 120 }}></div>
+          <div className="loading-skeleton skeleton-text" style={{ width: "65%" }}></div>
+        </td>
+        <td className="col-size">
+          <div className="loading-skeleton skeleton-text" style={{ width: 56 }}></div>
+        </td>
+        <td className="col-date">
+          <div className="loading-skeleton skeleton-text" style={{ width: 96 }}></div>
+          <div className="loading-skeleton skeleton-text" style={{ width: 48, height: 12 }}></div>
+        </td>
+        <td className="col-actions">
+          <span
+            className="loading-skeleton"
+            style={{ display: "inline-block", width: 68, height: 26, borderRadius: 6 }}
+          ></span>
+        </td>
+      </tr>
+    ))}
+  </>
+);
 
 const PackageRows = ({ pkg, isExpanded, onToggle, onRemove }: PackageRowsProps) => {
   const days = daysSince(pkg.installed_at);

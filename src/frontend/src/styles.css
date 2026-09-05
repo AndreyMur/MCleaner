@@ -1113,6 +1113,27 @@ body {
   background: var(--bg-secondary);
 }
 
+.orphan-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.orphan-skeleton-row:last-child {
+  border-bottom: none;
+}
+
+.orphan-skeleton-row .loading-skeleton {
+  flex-shrink: 0;
+}
+
+.orphan-skeleton-row .loading-skeleton:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .orphan-name {
   flex: 1;
   font-weight: 600;
