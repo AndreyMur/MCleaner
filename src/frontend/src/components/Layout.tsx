@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import JournalPanel from "./JournalPanel";
 import ThemeToggle from "./ThemeToggle";
 
@@ -9,6 +9,8 @@ const NAV_ITEMS = [
 ];
 
 const Layout = () => {
+  const location = useLocation();
+
   return (
     <div className="app-layout">
       <aside className="sidebar">
@@ -42,7 +44,9 @@ const Layout = () => {
       </aside>
       <div className="app-content">
         <main className="main-content">
-          <Outlet />
+          <div className="page-view" key={location.pathname}>
+            <Outlet />
+          </div>
         </main>
         <JournalPanel />
       </div>

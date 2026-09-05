@@ -12,7 +12,11 @@ const ToastContainer = () => {
   return (
     <div className="toast-container" aria-live="polite">
       {toasts.map((toast) => (
-        <div key={toast.id} className={`toast-item toast-${toast.kind}`} role="status">
+        <div
+          key={toast.id}
+          className={`toast-item toast-${toast.kind}${toast.leaving ? " leaving" : ""}`}
+          role="status"
+        >
           <span className="toast-icon">{ICONS[toast.kind]}</span>
           <span className="toast-message">{toast.message}</span>
           <button
