@@ -13,7 +13,7 @@ const PrivilegeBanner = ({ elevated, requesting, onRequest }: PrivilegeBannerPro
       <div className="privilege-banner-body">
         <strong>System changes need administrator rights</strong>
         <span>
-          OmniCleaner stays unprivileged and will request elevation (UAC / polkit)
+          MCleaner stays unprivileged and will request elevation (UAC / polkit)
           automatically when an operation needs it.
         </span>
       </div>

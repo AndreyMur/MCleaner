@@ -108,9 +108,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: OmniCleaner ${{ github.ref_name }}
+          name: MCleaner ${{ github.ref_name }}
           body: |
-            Cross-platform installer bundles for OmniCleaner.
+            Cross-platform installer bundles for MCleaner.
 
             - **Windows:** `.exe` (NSIS installer)
             - **macOS:** `.dmg`

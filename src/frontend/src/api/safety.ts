@@ -29,10 +29,10 @@ export interface OperationOptions {
  * exercise elevation, abort and recovery flows without a privileged backend.
  */
 const MOCK_KEYS = {
-  elevated: "omnicleaner.mock.elevated",
-  os: "omnicleaner.mock.os",
-  recovery: "omnicleaner.mock.recovery",
-  slow: "omnicleaner.mock.slow",
+  elevated: "mcleaner.mock.elevated",
+  os: "mcleaner.mock.os",
+  recovery: "mcleaner.mock.recovery",
+  slow: "mcleaner.mock.slow",
 } as const;
 
 function readMock(key: string, fallback: string): string {
@@ -69,12 +69,12 @@ function mockRecoveryCommand(): string | null {
   if (!isMockRecoveryAvailable()) return null;
   const os = mockOs();
   if (os === "windows") {
-    return "Checkpoint-Computer -Description 'OmniCleaner: before removing packages' -RestorePointType MODIFY_SETTINGS";
+    return "Checkpoint-Computer -Description 'MCleaner: before removing packages' -RestorePointType MODIFY_SETTINGS";
   }
   if (os === "darwin") {
-    return "tmutil localsnapshot 'OmniCleaner: before removing packages'";
+    return "tmutil localsnapshot 'MCleaner: before removing packages'";
   }
-  return 'timeshift --create --comments "OmniCleaner: before removing packages" --yes';
+  return 'timeshift --create --comments "MCleaner: before removing packages" --yes';
 }
 
 export function delay(
@@ -200,7 +200,7 @@ export async function createRecoveryPoint(
     };
   }
   try {
-    const payload = comment ?? "OmniCleaner: before removing packages";
+    const payload = comment ?? "MCleaner: before removing packages";
     const result = await invoke<{
       success?: boolean;
       tool?: string | null;

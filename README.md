@@ -1,8 +1,8 @@
-# OmniCleaner
+# MCleaner
 
 > Cross-platform desktop application for managing system packages and cleaning up cache and orphaned dependencies.
 
-OmniCleaner is a modern desktop app built with **Tauri 2**, **React** and **Rust**. It bundles a Python reference backend that implements adapters for the major package managers, detects the host OS at startup and lets you:
+MCleaner is a modern desktop app built with **Tauri 2**, **React** and **Rust**. It bundles a Python reference backend that implements adapters for the major package managers, detects the host OS at startup and lets you:
 
 - view dashboard stats (cache size, installed package count, OS);
 - list installed packages with search and filtering;

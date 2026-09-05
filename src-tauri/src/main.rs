@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    omnicleaner_lib::run();
+    mcleaner_lib::run();
 }

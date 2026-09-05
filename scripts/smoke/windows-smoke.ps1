@@ -35,9 +35,9 @@ if ($p.ExitCode -ne 0) {
 
 # Tauri NSIS (per-user) installs into LOCALAPPDATA by default.
 $candidates = @(
-  (Join-Path ${env:LOCALAPPDATA} "OmniCleaner"),
-  (Join-Path ${env:LOCALAPPDATA} "Programs\OmniCleaner"),
-  (Join-Path ${env:ProgramFiles} "OmniCleaner")
+  (Join-Path ${env:LOCALAPPDATA} "MCleaner"),
+  (Join-Path ${env:LOCALAPPDATA} "Programs\MCleaner"),
+  (Join-Path ${env:ProgramFiles} "MCleaner")
 )
 $installed = $null
 foreach ($dir in $candidates) {

@@ -14,7 +14,7 @@ import { useToast } from "../context/ToastContext";
 import ConfirmOrphansModal from "../components/ConfirmOrphansModal";
 import PrivilegeBanner from "../components/PrivilegeBanner";
 
-const RECOVERY_COMMENT = "OmniCleaner: before removing packages";
+const RECOVERY_COMMENT = "MCleaner: before removing packages";
 
 const Cleaner = () => {
   const [stats, setStats] = useState<CleanerStats | null>(null);
