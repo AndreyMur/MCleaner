@@ -46,7 +46,7 @@ function normalizeOrphan(raw: Partial<OrphanedPackage>): OrphanedPackage {
 
 export async function getCleanerStats(): Promise<CleanerStats> {
   if (!inTauri()) {
-    await delay(300);
+    await delay(700);
     return {
       cache_size: mockCacheSize,
       orphans: mockOrphans.map((orphan) => ({ ...orphan })),

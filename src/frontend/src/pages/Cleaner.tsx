@@ -29,6 +29,7 @@ const Cleaner = () => {
     [orphans]
   );
   const cacheSize = stats?.cache_size ?? 0;
+  const showSkeleton = loading && stats === null;
 
   useEffect(() => {
     loadStats();
@@ -124,9 +125,9 @@ const Cleaner = () => {
           </div>
 
           <div className="cleaner-card-body">
-            {loading ? (
+            {showSkeleton ? (
               <>
-                <div className="loading-skeleton skeleton-value"></div>
+                <div className="loading-skeleton skeleton-value" data-testid="cleaner-skeleton" style={{ width: "45%" }}></div>
                 <div className="loading-skeleton skeleton-text" style={{ width: "70%" }}></div>
               </>
             ) : (
@@ -183,9 +184,9 @@ const Cleaner = () => {
           </div>
 
           <div className="cleaner-card-body">
-            {loading ? (
+            {showSkeleton ? (
               <>
-                <div className="loading-skeleton skeleton-value"></div>
+                <div className="loading-skeleton skeleton-value" data-testid="cleaner-skeleton" style={{ width: "55%" }}></div>
                 <div className="loading-skeleton skeleton-text" style={{ width: "80%" }}></div>
               </>
             ) : (
@@ -201,6 +202,18 @@ const Cleaner = () => {
               </>
             )}
           </div>
+
+          {showSkeleton && (
+            <ul className="orphan-list" data-testid="orphans-list-skeleton" aria-hidden="true">
+              {[0, 1, 2].map((row) => (
+                <li className="orphan-skeleton-row" key={row}>
+                  <div className="loading-skeleton skeleton-text" style={{ marginBottom: 0 }}></div>
+                  <div className="loading-skeleton skeleton-text" style={{ width: 48, height: 12, marginBottom: 0 }}></div>
+                  <div className="loading-skeleton skeleton-text" style={{ width: 56, marginBottom: 0 }}></div>
+                </li>
+              ))}
+            </ul>
+          )}
 
           {!loading && orphans.length > 0 && (
             <ul className="orphan-list" data-testid="orphans-list">

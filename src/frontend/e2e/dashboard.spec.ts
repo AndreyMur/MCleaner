@@ -19,7 +19,8 @@ test.describe("Dashboard", () => {
   });
 
   test("should have navigation sidebar", async ({ page }) => {
-    await expect(page.locator(".sidebar-logo")).toHaveText("OmniCleaner");
+    await expect(page.locator(".sidebar-logo")).toBeVisible();
+    await expect(page.locator(".sidebar-brand")).toHaveText("OmniCleaner");
     await expect(page.locator(".nav-item")).toHaveCount(3);
   });
 

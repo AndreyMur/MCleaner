@@ -5,11 +5,13 @@ import Packages from "./pages/Packages";
 import Cleaner from "./pages/Cleaner";
 import { JournalProvider } from "./context/JournalContext";
 import { ToastProvider } from "./context/ToastContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ToastContainer from "./components/ToastContainer";
 
 function App() {
   return (
-    <ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
       <JournalProvider>
         <BrowserRouter>
           <Routes>
@@ -23,7 +25,8 @@ function App() {
         </BrowserRouter>
         <ToastContainer />
       </JournalProvider>
-    </ToastProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 

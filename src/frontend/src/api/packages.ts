@@ -75,7 +75,7 @@ function sortByName(packages: InstalledPackage[]): InstalledPackage[] {
 
 export async function getInstalledPackages(): Promise<InstalledPackage[]> {
   if (!inTauri()) {
-    await delay(400);
+    await delay(900);
     return sortByName(mockPackages);
   }
   try {

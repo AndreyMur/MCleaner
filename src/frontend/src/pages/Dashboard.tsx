@@ -50,6 +50,8 @@ const Dashboard = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const showSkeleton = loading && stats === null;
+
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
@@ -62,9 +64,13 @@ const Dashboard = () => {
               <div className="stat-card-icon blue">💾</div>
             </div>
           </div>
-          {loading ? (
+          {showSkeleton ? (
             <>
-              <div className="loading-skeleton skeleton-value"></div>
+              <div
+                className="loading-skeleton skeleton-value"
+                data-testid="dashboard-skeleton"
+                style={{ width: "60%" }}
+              ></div>
               <div className="loading-skeleton skeleton-text" style={{ width: "80%" }}></div>
             </>
           ) : (
@@ -90,10 +96,14 @@ const Dashboard = () => {
               <div className="stat-card-icon green">📦</div>
             </div>
           </div>
-          {loading ? (
+          {showSkeleton ? (
             <>
-              <div className="loading-skeleton skeleton-value"></div>
-              <div className="loading-skeleton skeleton-text" style={{ width: "60%" }}></div>
+              <div
+                className="loading-skeleton skeleton-value"
+                data-testid="dashboard-skeleton"
+                style={{ width: "45%" }}
+              ></div>
+              <div className="loading-skeleton skeleton-text" style={{ width: "70%" }}></div>
             </>
           ) : (
             <>
@@ -109,9 +119,13 @@ const Dashboard = () => {
               <div className="stat-card-icon orange">🖥️</div>
             </div>
           </div>
-          {loading ? (
+          {showSkeleton ? (
             <>
-              <div className="loading-skeleton skeleton-value"></div>
+              <div
+                className="loading-skeleton skeleton-value"
+                data-testid="dashboard-skeleton"
+                style={{ width: "55%", height: 30 }}
+              ></div>
               <div className="loading-skeleton skeleton-text" style={{ width: "70%" }}></div>
             </>
           ) : (
