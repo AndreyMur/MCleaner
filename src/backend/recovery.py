@@ -17,7 +17,7 @@ LINUX_TOOL = "timeshift"
 DARWIN_TOOL = "tmutil"
 WINDOWS_TOOL = "System Restore"
 
-RECOVERY_HOLD_COMMENT = "OmniCleaner: before removing packages"
+RECOVERY_HOLD_COMMENT = "MCleaner: before removing packages"
 
 _CHECKPOINT_SCRIPT = (
     "Checkpoint-Computer -Description {comment} "
@@ -78,7 +78,7 @@ def recovery_tool_status() -> Dict[str, object]:
             "available": present,
             "tool": WINDOWS_TOOL if present else None,
             "command": (
-                _CHECKPOINT_SCRIPT.format(comment="'OmniCleaner: safety'")
+                _CHECKPOINT_SCRIPT.format(comment="'MCleaner: safety'")
                 if present
                 else None
             ),

@@ -396,7 +396,7 @@ pub fn check_recovery_tool() -> RecoveryInfo {
                 tool: if available { Some("System Restore".to_string()) } else { None },
                 command: if available {
                     Some(
-                        "Checkpoint-Computer -Description 'OmniCleaner safety' \
+                        "Checkpoint-Computer -Description 'MCleaner safety' \
                          -RestorePointType MODIFY_SETTINGS"
                             .to_string(),
                     )
@@ -413,7 +413,7 @@ pub fn check_recovery_tool() -> RecoveryInfo {
                 tool: if available { Some("Timeshift".to_string()) } else { None },
                 command: if available {
                     Some(
-                        "timeshift --create --comments \"OmniCleaner: before removing packages\" --yes"
+                        "timeshift --create --comments \"MCleaner: before removing packages\" --yes"
                             .to_string(),
                     )
                 } else {

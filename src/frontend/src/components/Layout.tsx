@@ -20,7 +20,7 @@ const Layout = () => {
             <span className="sidebar-logo-mark" aria-hidden="true">
               🧹
             </span>
-            <span className="sidebar-brand">OmniCleaner</span>
+            <span className="sidebar-brand">MCleaner</span>
           </div>
           <nav className="sidebar-nav">
             {NAV_ITEMS.map((item) => (

@@ -17,7 +17,7 @@ interface ThemeContextValue {
   setPreference: (preference: ThemePreference) => void;
 }
 
-const STORAGE_KEY = "omnicleaner.theme";
+const STORAGE_KEY = "mcleaner.theme";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 

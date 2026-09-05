@@ -1,4 +1,4 @@
-# Plan: OmniCleaner Desktop Application
+# Plan: MCleaner Desktop Application
 
 **PRD:** prd_mcleaner
 **Дата:** 2026-09-05

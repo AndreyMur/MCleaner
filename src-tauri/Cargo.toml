@@ -1,14 +1,16 @@
 [package]
-name = "omnicleaner"
+name = "mcleaner"
 version = "0.1.0"
 description = "A cross-platform package manager and cleaner"
 authors = ["AndreyMur"]
 license = "MIT"
-repository = ""
+repository = "https://github.com/AndreyMur/MCleaner"
+homepage = "https://github.com/AndreyMur/MCleaner"
 edition = "2021"
+default-run = "mcleaner"
 
 [lib]
-name = "omnicleaner_lib"
+name = "mcleaner_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

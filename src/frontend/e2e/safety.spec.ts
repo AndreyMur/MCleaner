@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-const ELEVATED = "omnicleaner.mock.elevated";
-const SLOW = "omnicleaner.mock.slow";
+const ELEVATED = "mcleaner.mock.elevated";
+const SLOW = "mcleaner.mock.slow";
 
 test.describe("Safety", () => {
   test("shows the elevation banner and requests admin rights", async ({ page }) => {
