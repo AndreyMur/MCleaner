@@ -125,6 +125,39 @@ pub fn run_autoremove() -> Result<bool, String> {
     Ok(output.status.success())
 }
 
+fn get_apt_orphans() -> Vec<PackageInfo> {
+    match Command::new("apt-get")
+        .args(["--simulate", "autoremove", "-y"])
+        .output()
+    {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let text = format!("{stdout}\n{stderr}");
+
+            text.lines()
+                .filter_map(|line| {
+                    let trimmed = line.trim_start();
+                    let rest = trimmed.strip_prefix("Remv ")?;
+                    let name = rest.split_whitespace().next()?.to_string();
+                    Some(PackageInfo {
+                        name,
+                        version: String::new(),
+                        size: 0,
+                        description: String::new(),
+                    })
+                })
+                .collect()
+        }
+        Err(_) => Vec::new(),
+    }
+}
+
+#[tauri::command]
+pub fn get_orphaned_packages() -> Vec<PackageInfo> {
+    get_apt_orphans()
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -133,7 +166,8 @@ pub fn run() {
             get_installed_packages,
             clean_cache,
             remove_package,
-            run_autoremove
+            run_autoremove,
+            get_orphaned_packages
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

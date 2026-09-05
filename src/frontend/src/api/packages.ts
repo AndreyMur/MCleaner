@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { inTauri } from "./env";
 
 export interface InstalledPackage {
   name: string;
@@ -66,10 +67,6 @@ function seedMock(): InstalledPackage[] {
     installed_at: isoDaysAgo(seed.daysAgo),
     is_dependency: seed.isDependency,
   }));
-}
-
-function inTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
 function sortByName(packages: InstalledPackage[]): InstalledPackage[] {

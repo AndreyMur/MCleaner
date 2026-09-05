@@ -11,6 +11,8 @@ import {
   daysSince,
   sizeCategory,
 } from "../api/format";
+import { useJournal } from "../context/JournalContext";
+import { useToast } from "../context/ToastContext";
 import ConfirmRemoveModal from "../components/ConfirmRemoveModal";
 
 type SizeFilter = "all" | "small" | "medium" | "large";
@@ -50,9 +52,9 @@ const Packages = () => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pendingRemove, setPendingRemove] = useState<InstalledPackage | null>(null);
   const [removing, setRemoving] = useState(false);
-  const [autoremoving, setAutoremoving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [log, setLog] = useState<string[]>([]);
+  const { append, setRunning } = useJournal();
+  const { push } = useToast();
 
   useEffect(() => {
     loadPackages();
@@ -71,10 +73,6 @@ const Packages = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const appendLog = (line: string) => {
-    setLog((prev) => [...prev.slice(-19), line]);
   };
 
   const filtered = useMemo(() => {
@@ -118,34 +116,41 @@ const Packages = () => {
     if (!pkg) return;
     setRemoving(true);
     setActionError(null);
-    appendLog(`$ remove_package "${pkg.name}"`);
+    append(`$ remove_package "${pkg.name}"`, "cmd");
+    setRunning(`Removing ${pkg.name}…`);
 
     const removeResult = await removePackage(pkg.name);
     if (!removeResult.success) {
       setActionError(`Failed to remove ${pkg.name}.`);
+      append(`Failed to remove ${pkg.name}`, "err");
       setRemoving(false);
+      setRunning(null);
       return;
     }
 
-    appendLog(`Removed ${pkg.name} ${pkg.version}`);
+    append(`Removed ${pkg.name} ${pkg.version}`, "ok");
+    push("success", `${pkg.name} ${pkg.version} removed`);
     setPendingRemove(null);
     setRemoving(false);
 
-    setAutoremoving(true);
-    appendLog("$ autoremove");
+    setRunning("Running autoremove…");
+    append("$ apt autoremove -y", "cmd");
     const autoResult = await runAutoremove();
     if (autoResult.success) {
       if (autoResult.removed.length > 0) {
-        appendLog(
-          `Autoremove cleaned ${autoResult.removed.length} orphaned packages: ${autoResult.removed.join(", ")}`
+        append(
+          `Autoremove cleaned ${autoResult.removed.length} orphaned packages: ${autoResult.removed.join(", ")}`,
+          "ok"
         );
+        push("success", `Autoremove removed ${autoResult.removed.length} orphaned packages`);
       } else {
-        appendLog("Autoremove finished, no orphaned packages found");
+        append("Autoremove finished, no orphaned packages found", "info");
       }
     } else {
-      appendLog("Autoremove failed");
+      append("Autoremove failed", "err");
+      push("error", "Autoremove failed");
     }
-    setAutoremoving(false);
+    setRunning(null);
     setExpanded(null);
 
     await loadPackages();
@@ -263,22 +268,6 @@ const Packages = () => {
               Try adjusting the search query or filters.
             </p>
           </div>
-        )}
-      </div>
-
-      <div className="operation-log">
-        <div className="operation-log-header">
-          <span>Terminal log</span>
-          {autoremoving && <span className="operation-spinner">Running autoremove…</span>}
-        </div>
-        {log.length === 0 ? (
-          <p className="log-placeholder">Operations will be shown here.</p>
-        ) : (
-          log.map((line, index) => (
-            <div className="log-line" key={index}>
-              {line}
-            </div>
-          ))
         )}
       </div>
 

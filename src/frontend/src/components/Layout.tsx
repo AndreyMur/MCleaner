@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import JournalPanel from "./JournalPanel";
 
 const Layout = () => {
   return (
@@ -29,9 +30,12 @@ const Layout = () => {
           </NavLink>
         </nav>
       </aside>
-      <main className="main-content">
-        <Outlet />
-      </main>
+      <div className="app-content">
+        <main className="main-content">
+          <Outlet />
+        </main>
+        <JournalPanel />
+      </div>
     </div>
   );
 };
