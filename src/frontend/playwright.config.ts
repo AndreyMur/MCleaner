@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const browserChannel = process.env.PW_CHANNEL || undefined;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -10,6 +12,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:1420",
     trace: "on-first-retry",
+    ...(browserChannel ? { channel: browserChannel } : {}),
   },
   projects: [
     {

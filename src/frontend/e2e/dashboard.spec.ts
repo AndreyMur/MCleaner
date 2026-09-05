@@ -24,13 +24,13 @@ test.describe("Dashboard", () => {
   });
 
   test("should navigate between pages", async ({ page }) => {
-    await page.click('text=Packages');
+    await page.locator(".nav-item", { hasText: "Packages" }).click();
     await expect(page.locator(".page-title")).toHaveText("Packages");
 
-    await page.click('text=Cleaner');
+    await page.locator(".nav-item", { hasText: "Cleaner" }).click();
     await expect(page.locator(".page-title")).toHaveText("Cleaner");
 
-    await page.click('text=Dashboard');
+    await page.locator(".nav-item", { hasText: "Dashboard" }).click();
     await expect(page.locator(".page-title")).toHaveText("Dashboard");
   });
 
