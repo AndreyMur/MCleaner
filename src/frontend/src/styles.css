@@ -1414,3 +1414,106 @@ body {
     flex-wrap: wrap;
   }
 }
+
+/* Safety: privilege banner */
+
+.privilege-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 149, 0, 0.1);
+  border: 1px solid rgba(255, 149, 0, 0.35);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.privilege-banner-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.privilege-banner-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.privilege-banner-body span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.privilege-banner-action {
+  flex-shrink: 0;
+}
+
+/* Safety: progress row with abort button */
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-row .progress-label {
+  flex: 1;
+}
+
+.progress-abort {
+  flex-shrink: 0;
+}
+
+/* Safety: 5 second confirmation hold */
+
+.modal-hold {
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+}
+
+.modal-hold strong {
+  color: var(--danger);
+}
+
+/* Safety: recovery point notice inside dialogs */
+
+.modal-recovery {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+
+.modal-recovery p {
+  color: var(--text-secondary);
+}
+
+.modal-recovery strong {
+  color: var(--text-primary);
+}
+
+.modal-recovery.available {
+  background: rgba(52, 199, 89, 0.08);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+}
+
+.modal-recovery.missing {
+  background: rgba(255, 149, 0, 0.08);
+  border: 1px solid rgba(255, 149, 0, 0.3);
+}
+
+.modal-recovery-icon {
+  line-height: 1;
+  font-size: 16px;
+}
+

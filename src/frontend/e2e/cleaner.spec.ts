@@ -57,12 +57,33 @@ test.describe("Cleaner Module", () => {
     await expect(modal.locator(".modal-fact-value").first()).toHaveText("4");
   });
 
+  test("should require a 5 second safety hold before confirming", async ({ page }) => {
+    await page.locator('[data-testid="remove-orphans"]').click();
+
+    const modal = page.locator(".modal");
+    await expect(modal).toBeVisible();
+
+    const confirm = page.locator('[data-testid="confirm-orphans-removal"]');
+    await expect(confirm).toBeDisabled();
+    await expect(page.locator('[data-testid="confirm-hold"]')).toContainText(
+      "Safety hold"
+    );
+    await expect(page.locator('[data-testid="confirm-hold"]')).toContainText("5s");
+    await expect(confirm).toBeEnabled({ timeout: 8000 });
+
+    await modal.locator("button:has-text('Cancel')").click();
+    await expect(modal).toHaveCount(0);
+    await expect(page.locator('[data-testid="orphans-list"] .orphan-row')).toHaveCount(4);
+  });
+
   test("should remove orphans with confirmation", async ({ page }) => {
     await page.locator('[data-testid="remove-orphans"]').click();
 
     const modal = page.locator(".modal");
     await expect(modal).toBeVisible();
-    await page.locator('[data-testid="confirm-orphans-removal"]').click();
+    const confirm = page.locator('[data-testid="confirm-orphans-removal"]');
+    await expect(confirm).toBeEnabled({ timeout: 8000 });
+    await confirm.click();
 
     await expect(modal).toHaveCount(0);
 

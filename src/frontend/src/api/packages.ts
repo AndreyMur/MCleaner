@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "./env";
+import { cancelOperationOnAbort, delay } from "./safety";
+import type { OperationOptions } from "./safety";
 
 export interface InstalledPackage {
   name: string;
@@ -14,11 +16,13 @@ export interface InstalledPackage {
 export interface RemoveResult {
   success: boolean;
   removed: string[];
+  aborted?: boolean;
 }
 
 export interface AutoremoveResult {
   success: boolean;
   removed: string[];
+  aborted?: boolean;
 }
 
 interface MockSeed {
@@ -30,8 +34,6 @@ interface MockSeed {
   daysAgo: number;
   isDependency?: boolean;
 }
-
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const isoDaysAgo = (days: number): string => {
   const date = new Date(Date.now() - days * 86_400_000);
@@ -99,9 +101,16 @@ function normalizePackage(raw: Partial<InstalledPackage>): InstalledPackage {
   };
 }
 
-export async function removePackage(name: string): Promise<RemoveResult> {
+export async function removePackage(
+  name: string,
+  options: OperationOptions = {}
+): Promise<RemoveResult> {
+  const { signal } = options;
   if (!inTauri()) {
-    await delay(500);
+    await delay(500, signal);
+    if (signal?.aborted) {
+      return { success: false, removed: [], aborted: true };
+    }
     const target = mockPackages.find((p) => p.name === name);
     const removed = [name];
     mockPackages = mockPackages.filter((p) => p.name !== name);
@@ -111,17 +120,28 @@ export async function removePackage(name: string): Promise<RemoveResult> {
     return { success: true, removed };
   }
   try {
+    cancelOperationOnAbort(signal);
     const ok = await invoke<boolean>("remove_package", { name });
-    return { success: ok, removed: ok ? [name] : [] };
+    return {
+      success: ok,
+      removed: ok ? [name] : [],
+      aborted: Boolean(signal?.aborted),
+    };
   } catch (error) {
     console.error("Failed to remove package:", error);
-    return { success: false, removed: [] };
+    return { success: false, removed: [], aborted: Boolean(signal?.aborted) };
   }
 }
 
-export async function runAutoremove(): Promise<AutoremoveResult> {
+export async function runAutoremove(
+  options: OperationOptions = {}
+): Promise<AutoremoveResult> {
+  const { signal } = options;
   if (!inTauri()) {
-    await delay(600);
+    await delay(600, signal);
+    if (signal?.aborted) {
+      return { success: false, removed: [], aborted: true };
+    }
     const dependencyNames = new Set(mockPackages.flatMap((p) => p.dependencies));
     const orphans = mockPackages.filter(
       (p) => p.is_dependency && !dependencyNames.has(p.name)
@@ -131,10 +151,15 @@ export async function runAutoremove(): Promise<AutoremoveResult> {
     return { success: true, removed: orphanNames };
   }
   try {
+    cancelOperationOnAbort(signal);
     const ok = await invoke<boolean>("run_autoremove");
-    return { success: ok, removed: [] };
+    return {
+      success: ok,
+      removed: [],
+      aborted: Boolean(signal?.aborted),
+    };
   } catch (error) {
     console.error("Failed to run autoremove:", error);
-    return { success: false, removed: [] };
+    return { success: false, removed: [], aborted: Boolean(signal?.aborted) };
   }
 }

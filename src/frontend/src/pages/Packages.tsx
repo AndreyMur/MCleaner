@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { InstalledPackage } from "../api/packages";
 import {
   getInstalledPackages,
@@ -11,9 +11,12 @@ import {
   daysSince,
   sizeCategory,
 } from "../api/format";
+import type { PrivilegeStatus } from "../api/safety";
+import { getPrivilegeStatus, requestElevation } from "../api/safety";
 import { useJournal } from "../context/JournalContext";
 import { useToast } from "../context/ToastContext";
 import ConfirmRemoveModal from "../components/ConfirmRemoveModal";
+import PrivilegeBanner from "../components/PrivilegeBanner";
 
 type SizeFilter = "all" | "small" | "medium" | "large";
 type DateFilter = "all" | "recent7" | "recent30" | "older30";
@@ -53,12 +56,46 @@ const Packages = () => {
   const [pendingRemove, setPendingRemove] = useState<InstalledPackage | null>(null);
   const [removing, setRemoving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [privilege, setPrivilege] = useState<PrivilegeStatus | null>(null);
+  const [requestingElevation, setRequestingElevation] = useState(false);
+  const removeAbortRef = useRef<AbortController | null>(null);
+
   const { append, setRunning } = useJournal();
   const { push } = useToast();
 
   useEffect(() => {
     loadPackages();
+    loadPrivilege();
   }, []);
+
+  const loadPrivilege = async () => {
+    try {
+      setPrivilege(await getPrivilegeStatus());
+    } catch (error) {
+      console.error("Failed to load privilege status:", error);
+    }
+  };
+
+  const ensureElevated = async (): Promise<boolean> => {
+    if (privilege?.elevated) return true;
+    setRequestingElevation(true);
+    try {
+      const next = await requestElevation();
+      setPrivilege(next);
+      return next.elevated;
+    } finally {
+      setRequestingElevation(false);
+    }
+  };
+
+  const requestElevationNow = () => {
+    void ensureElevated().then((elevated) => {
+      if (!elevated) {
+        push("error", "Administrator rights are required to modify the system");
+      }
+    });
+  };
 
   const loadPackages = async () => {
     setLoading(true);
@@ -114,12 +151,30 @@ const Packages = () => {
   const handleConfirmRemove = async () => {
     const pkg = pendingRemove;
     if (!pkg) return;
+
+    if (!(await ensureElevated())) {
+      setActionError("Administrator rights are required to remove packages.");
+      return;
+    }
+
+    const controller = new AbortController();
+    removeAbortRef.current = controller;
+    const { signal } = controller;
+
     setRemoving(true);
     setActionError(null);
     append(`$ remove_package "${pkg.name}"`, "cmd");
     setRunning(`Removing ${pkg.name}…`);
 
-    const removeResult = await removePackage(pkg.name);
+    const removeResult = await removePackage(pkg.name, { signal });
+    if (removeResult.aborted) {
+      append("Package removal aborted", "info");
+      push("info", "Operation aborted");
+      setRemoving(false);
+      setRunning(null);
+      await loadPackages();
+      return;
+    }
     if (!removeResult.success) {
       setActionError(`Failed to remove ${pkg.name}.`);
       append(`Failed to remove ${pkg.name}`, "err");
@@ -130,13 +185,15 @@ const Packages = () => {
 
     append(`Removed ${pkg.name} ${pkg.version}`, "ok");
     push("success", `${pkg.name} ${pkg.version} removed`);
-    setPendingRemove(null);
     setRemoving(false);
 
     setRunning("Running autoremove…");
     append("$ apt autoremove -y", "cmd");
-    const autoResult = await runAutoremove();
-    if (autoResult.success) {
+    const autoResult = await runAutoremove({ signal });
+    if (autoResult.aborted) {
+      append("Autoremove aborted", "info");
+      push("info", "Autoremove aborted");
+    } else if (autoResult.success) {
       if (autoResult.removed.length > 0) {
         append(
           `Autoremove cleaned ${autoResult.removed.length} orphaned packages: ${autoResult.removed.join(", ")}`,
@@ -152,8 +209,13 @@ const Packages = () => {
     }
     setRunning(null);
     setExpanded(null);
+    setPendingRemove(null);
 
     await loadPackages();
+  };
+
+  const handleAbortRemove = () => {
+    removeAbortRef.current?.abort();
   };
 
   const showEmptyState = !loading && filtered.length === 0;
@@ -164,6 +226,12 @@ const Packages = () => {
       <p className="page-subtitle">
         Browse, search and manage installed packages
       </p>
+
+      <PrivilegeBanner
+        elevated={privilege?.elevated ?? true}
+        requesting={requestingElevation}
+        onRequest={requestElevationNow}
+      />
 
       <div className="packages-toolbar">
         <div className="toolbar-search">
@@ -271,6 +339,7 @@ const Packages = () => {
           error={actionError}
           onConfirm={handleConfirmRemove}
           onCancel={() => setPendingRemove(null)}
+          onAbort={handleAbortRemove}
         />
       )}
     </div>
