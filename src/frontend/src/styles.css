@@ -1,7 +1,9 @@
 :root {
+  color-scheme: light;
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f7;
   --bg-tertiary: #e8e8ed;
+  --bg-hover: rgba(0, 0, 0, 0.04);
   --text-primary: #1d1d1f;
   --text-secondary: #6e6e73;
   --accent: #0071e3;
@@ -12,18 +14,27 @@
   --danger: #ff3b30;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --radius: 12px;
+  --overlay: rgba(0, 0, 0, 0.45);
+  --modal-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #1d1d1f;
-    --bg-secondary: #2d2d2f;
-    --bg-tertiary: #3d3d3f;
-    --text-primary: #f5f5f7;
-    --text-secondary: #a1a1a6;
-    --border: #48484a;
-    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-primary: #1d1d1f;
+  --bg-secondary: #2d2d2f;
+  --bg-tertiary: #3d3d3f;
+  --bg-hover: rgba(255, 255, 255, 0.06);
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1a6;
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --border: #48484a;
+  --success: #32d74b;
+  --warning: #ff9f0a;
+  --danger: #ff453a;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --modal-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -39,6 +50,7 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .app-layout {
@@ -48,29 +60,61 @@ body {
 }
 
 .sidebar {
-  width: 220px;
+  width: 248px;
   background-color: var(--bg-primary);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: 12px 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .sidebar-logo {
-  padding: 8px 24px 24px;
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--accent);
+  white-space: nowrap;
+}
+
+.sidebar-logo-mark {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 12px 4px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 24px;
+  padding: 12px 20px;
+  margin: 0 8px 2px;
+  border-radius: 8px;
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.18s ease, color 0.18s ease;
   font-size: 14px;
   font-weight: 500;
 }
@@ -83,6 +127,65 @@ body {
 .nav-item.active {
   background-color: var(--bg-tertiary);
   color: var(--accent);
+}
+
+.nav-item:active {
+  transform: scale(0.98);
+}
+
+.nav-label {
+  white-space: nowrap;
+}
+
+/* Theme toggle */
+
+.theme-toggle {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--bg-secondary);
+}
+
+.theme-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.18s ease, color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.theme-option:hover {
+  color: var(--text-primary);
+}
+
+.theme-option:active {
+  transform: scale(0.96);
+}
+
+.theme-option[aria-pressed="true"] {
+  background-color: var(--bg-primary);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.theme-option-icon {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .nav-icon {
@@ -131,7 +234,8 @@ body {
   border-radius: var(--radius);
   padding: 24px;
   box-shadow: var(--shadow);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
@@ -360,6 +464,7 @@ body {
   box-shadow: var(--shadow);
   overflow: hidden;
   margin-bottom: 20px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .pkg-table {
@@ -897,6 +1002,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: background-color 0.2s ease;
 }
 
 .cleaner-card-header {
