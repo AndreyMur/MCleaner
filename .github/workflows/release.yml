@@ -1,0 +1,121 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            bundles: deb,appimage
+            upload_path: |
+              src-tauri/target/release/bundle/deb/*.deb
+              src-tauri/target/release/bundle/appimage/*.AppImage
+          - platform: macos-latest
+            bundles: dmg
+            extra_args: --no-sign
+            upload_path: |
+              src-tauri/target/release/bundle/dmg/*.dmg
+          - platform: windows-latest
+            bundles: nsis
+            upload_path: |
+              src-tauri/target/release/bundle/nsis/*-setup.exe
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils build-essential libssl-dev libfuse2 xvfb dbus-x11
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: src/frontend
+        run: npm ci
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Build app and bundles
+        run: node src/frontend/node_modules/@tauri-apps/cli/tauri.js build --ci --bundles ${{ matrix.bundles }} ${{ matrix.extra_args }}
+
+      - name: Smoke test the installer (Linux)
+        if: runner.os == 'Linux'
+        run: bash scripts/smoke/linux-smoke.sh "${{ github.workspace }}/src-tauri/target/release/bundle"
+
+      - name: Smoke test the installer (macOS)
+        if: runner.os == 'macOS'
+        run: bash scripts/smoke/macos-smoke.sh "${{ github.workspace }}/src-tauri/target/release/bundle"
+
+      - name: Smoke test the installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/smoke/windows-smoke.ps1 "${{ github.workspace }}/src-tauri/target/release/bundle"
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundles-${{ matrix.platform }}
+          path: ${{ matrix.upload_path }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all bundle artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bundles
+          merge-multiple: true
+
+      - name: Assemble release assets
+        run: |
+          mkdir -p release-assets
+          find bundles -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' \
+            -o -name '*.deb' -o -name '*.AppImage' -o -name '*.rpm' \) \
+            -exec cp -n {} release-assets/ \;
+          ls -la release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: OmniCleaner ${{ github.ref_name }}
+          body: |
+            Cross-platform installer bundles for OmniCleaner.
+
+            - **Windows:** `.exe` (NSIS installer)
+            - **macOS:** `.dmg`
+            - **Linux:** `.deb` and `.AppImage`
+          draft: false
+          prerelease: false
+          files: release-assets/*
+          fail_on_unmatched_files: true
