@@ -104,13 +104,36 @@ pub fn clean_cache() -> Result<bool, String> {
     Ok(output.status.success())
 }
 
+#[tauri::command]
+pub fn remove_package(name: String) -> Result<bool, String> {
+    let output = Command::new("apt")
+        .args(["remove", "-y", "--purge"])
+        .arg(name)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+pub fn run_autoremove() -> Result<bool, String> {
+    let output = Command::new("apt")
+        .args(["autoremove", "-y"])
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    Ok(output.status.success())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             get_dashboard_stats,
             get_installed_packages,
-            clean_cache
+            clean_cache,
+            remove_package,
+            run_autoremove
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
