@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { InstalledPackage } from "../api/packages";
 import { formatSize } from "../api/format";
+import { useHoldConfirm } from "../hooks/useHoldConfirm";
 
 interface ConfirmRemoveModalProps {
   pkg: InstalledPackage;
@@ -8,7 +9,10 @@ interface ConfirmRemoveModalProps {
   error: string | null;
   onConfirm: () => void;
   onCancel: () => void;
+  onAbort?: () => void;
 }
+
+const HOLD_SECONDS = 5;
 
 const ConfirmRemoveModal = ({
   pkg,
@@ -16,7 +20,10 @@ const ConfirmRemoveModal = ({
   error,
   onConfirm,
   onCancel,
+  onAbort,
 }: ConfirmRemoveModalProps) => {
+  const { held, remaining } = useHoldConfirm(HOLD_SECONDS);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !removing) onCancel();
@@ -51,16 +58,39 @@ const ConfirmRemoveModal = ({
           </div>
         </div>
 
+        <div className="modal-hold" data-testid="confirm-hold">
+          {removing ? (
+            <span>Removing {pkg.name}…</span>
+          ) : !held ? (
+            <span>
+              ⏳ Safety hold — confirm in <strong>{remaining}s</strong>. You can still
+              cancel.
+            </span>
+          ) : (
+            <span>Confirmation window passed — removal can proceed.</span>
+          )}
+        </div>
+
         {error && <div className="toast toast-error">{error}</div>}
 
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onCancel} disabled={removing}>
-            Cancel
-          </button>
+          {removing && onAbort ? (
+            <button
+              className="btn btn-secondary"
+              onClick={onAbort}
+              data-testid="abort-package-removal"
+            >
+              Abort
+            </button>
+          ) : (
+            <button className="btn btn-secondary" onClick={onCancel} disabled={removing}>
+              Cancel
+            </button>
+          )}
           <button
             className="btn btn-danger"
             onClick={onConfirm}
-            disabled={removing}
+            disabled={removing || !held}
             data-testid="confirm-remove"
           >
             {removing ? "Removing..." : "Remove package"}

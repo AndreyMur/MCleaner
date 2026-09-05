@@ -86,8 +86,14 @@ test.describe("Package Manager", () => {
     await expect(modal).toContainText("vlc");
     await expect(modal).toContainText("autoremove");
     await expect(modal).toContainText("Dependencies");
+    await expect(page.locator('[data-testid="confirm-hold"]')).toContainText(
+      "Safety hold"
+    );
 
-    await page.locator('[data-testid="confirm-remove"]').click();
+    const confirm = page.locator('[data-testid="confirm-remove"]');
+    await expect(confirm).toBeDisabled();
+    await expect(confirm).toBeEnabled({ timeout: 8000 });
+    await confirm.click();
 
     await expect(modal).toHaveCount(0);
     await expect(page.locator(".operation-log")).toContainText("Autoremove cleaned 2 orphaned packages");
