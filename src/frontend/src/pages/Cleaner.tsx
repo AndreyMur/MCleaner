@@ -1,10 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CleanerStats } from "../api/cleaner";
 import { cleanCache, getCleanerStats, removeOrphans } from "../api/cleaner";
 import { formatSize } from "../api/format";
+import type { PrivilegeStatus, RecoveryToolStatus } from "../api/safety";
+import {
+  checkRecoveryTool,
+  createRecoveryPoint,
+  getPrivilegeStatus,
+  requestElevation,
+} from "../api/safety";
 import { useJournal } from "../context/JournalContext";
 import { useToast } from "../context/ToastContext";
 import ConfirmOrphansModal from "../components/ConfirmOrphansModal";
+import PrivilegeBanner from "../components/PrivilegeBanner";
+
+const RECOVERY_COMMENT = "OmniCleaner: before removing packages";
 
 const Cleaner = () => {
   const [stats, setStats] = useState<CleanerStats | null>(null);
@@ -14,11 +24,17 @@ const Cleaner = () => {
   const [cleaning, setCleaning] = useState(false);
   const [cacheProgress, setCacheProgress] = useState(0);
   const [cacheMessage, setCacheMessage] = useState("");
+  const cacheAbortRef = useRef<AbortController | null>(null);
 
   const [confirmingOrphans, setConfirmingOrphans] = useState(false);
   const [removingOrphans, setRemovingOrphans] = useState(false);
   const [orphanProgress, setOrphanProgress] = useState(0);
   const [orphanMessage, setOrphanMessage] = useState("");
+  const orphansAbortRef = useRef<AbortController | null>(null);
+
+  const [privilege, setPrivilege] = useState<PrivilegeStatus | null>(null);
+  const [requestingElevation, setRequestingElevation] = useState(false);
+  const [recovery, setRecovery] = useState<RecoveryToolStatus | null>(null);
 
   const { append, setRunning } = useJournal();
   const { push } = useToast();
@@ -33,7 +49,41 @@ const Cleaner = () => {
 
   useEffect(() => {
     loadStats();
+    loadSafety();
   }, []);
+
+  const loadSafety = async () => {
+    try {
+      const [privilegeStatus, recoveryStatus] = await Promise.all([
+        getPrivilegeStatus(),
+        checkRecoveryTool(),
+      ]);
+      setPrivilege(privilegeStatus);
+      setRecovery(recoveryStatus);
+    } catch (error) {
+      console.error("Failed to load safety information:", error);
+    }
+  };
+
+  const ensureElevated = async (): Promise<boolean> => {
+    if (privilege?.elevated) return true;
+    setRequestingElevation(true);
+    try {
+      const next = await requestElevation();
+      setPrivilege(next);
+      return next.elevated;
+    } finally {
+      setRequestingElevation(false);
+    }
+  };
+
+  const requestElevationNow = () => {
+    void ensureElevated().then((elevated) => {
+      if (!elevated) {
+        push("error", "Administrator rights are required to clean the system");
+      }
+    });
+  };
 
   const loadStats = async () => {
     setLoading(true);
@@ -51,19 +101,33 @@ const Cleaner = () => {
 
   const handleCleanCache = async () => {
     if (!stats || stats.cache_size === 0) return;
+    if (!(await ensureElevated())) {
+      push("error", "Administrator rights are required to clean the cache");
+      return;
+    }
+
     const freed = stats.cache_size;
+    const controller = new AbortController();
+    cacheAbortRef.current = controller;
+
     setCleaning(true);
     setCacheProgress(0);
     setCacheMessage("");
     append("$ apt clean", "cmd");
     setRunning("Cleaning cache…");
 
-    const result = await cleanCache((percent, message) => {
-      setCacheProgress(percent);
-      setCacheMessage(message);
-    });
+    const result = await cleanCache(
+      (percent, message) => {
+        setCacheProgress(percent);
+        setCacheMessage(message);
+      },
+      { signal: controller.signal }
+    );
 
-    if (result.success) {
+    if (result.aborted) {
+      append("Cache clean aborted", "info");
+      push("info", "Cache clean aborted");
+    } else if (result.success) {
       append(`Cache cleaned · freed ${formatSize(freed)}`, "ok");
       push("success", `Cache cleaned · ${formatSize(freed)} freed`);
     } else {
@@ -72,22 +136,51 @@ const Cleaner = () => {
     }
     setRunning(null);
     setCleaning(false);
+    cacheAbortRef.current = null;
     await loadStats();
   };
 
+  const handleAbortClean = () => {
+    cacheAbortRef.current?.abort();
+  };
+
   const handleConfirmRemoveOrphans = async () => {
+    if (!(await ensureElevated())) {
+      push("error", "Administrator rights are required to remove packages");
+      return;
+    }
+
+    if (recovery?.available) {
+      append(`$ ${recovery.command ?? recovery.tool}`, "cmd");
+      const point = await createRecoveryPoint(RECOVERY_COMMENT);
+      if (point.success) {
+        append(`Recovery point created (${point.tool ?? recovery.tool})`, "ok");
+      } else {
+        append(`Failed to create recovery point: ${point.message}`, "err");
+      }
+    }
+
+    const controller = new AbortController();
+    orphansAbortRef.current = controller;
+
     setRemovingOrphans(true);
     setOrphanProgress(0);
     setOrphanMessage("");
     append("$ apt autoremove -y", "cmd");
     setRunning("Removing orphaned packages…");
 
-    const result = await removeOrphans((percent, message) => {
-      setOrphanProgress(percent);
-      setOrphanMessage(message);
-    });
+    const result = await removeOrphans(
+      (percent, message) => {
+        setOrphanProgress(percent);
+        setOrphanMessage(message);
+      },
+      { signal: controller.signal }
+    );
 
-    if (result.success) {
+    if (result.aborted) {
+      append("Orphan removal aborted", "info");
+      push("info", "Operation aborted");
+    } else if (result.success) {
       append(
         `Removed ${result.removed.length} orphaned packages: ${result.removed.join(", ")}`,
         "ok"
@@ -100,7 +193,12 @@ const Cleaner = () => {
     setRunning(null);
     setRemovingOrphans(false);
     setConfirmingOrphans(false);
+    orphansAbortRef.current = null;
     await loadStats();
+  };
+
+  const handleAbortOrphans = () => {
+    orphansAbortRef.current?.abort();
   };
 
   const showEmptyOrphans = !loading && orphans.length === 0;
@@ -109,6 +207,12 @@ const Cleaner = () => {
     <div>
       <h1 className="page-title">Cleaner</h1>
       <p className="page-subtitle">Clean system junk and orphaned packages</p>
+
+      <PrivilegeBanner
+        elevated={privilege?.elevated ?? true}
+        requesting={requestingElevation}
+        onRequest={requestElevationNow}
+      />
 
       {loadError && <div className="toast toast-error">{loadError}</div>}
 
@@ -164,9 +268,18 @@ const Cleaner = () => {
                     style={{ width: `${cacheProgress}%` }}
                   ></div>
                 </div>
-                <span className="progress-label" data-testid="clean-progress-label">
-                  {cacheMessage || "Cleaning…"} · {cacheProgress}%
-                </span>
+                <div className="progress-row">
+                  <span className="progress-label" data-testid="clean-progress-label">
+                    {cacheMessage || "Cleaning…"} · {cacheProgress}%
+                  </span>
+                  <button
+                    className="btn btn-secondary btn-sm progress-abort"
+                    data-testid="abort-cache-clean"
+                    onClick={handleAbortClean}
+                  >
+                    Abort
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -265,9 +378,11 @@ const Cleaner = () => {
                     style={{ width: `${orphanProgress}%` }}
                   ></div>
                 </div>
-                <span className="progress-label" data-testid="orphan-progress-label">
-                  {orphanMessage || "Removing…"} · {orphanProgress}%
-                </span>
+                <div className="progress-row">
+                  <span className="progress-label" data-testid="orphan-progress-label">
+                    {orphanMessage || "Removing…"} · {orphanProgress}%
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -279,8 +394,10 @@ const Cleaner = () => {
           orphans={orphans}
           totalSize={totalOrphanSize}
           removing={removingOrphans}
+          recovery={recovery}
           onConfirm={handleConfirmRemoveOrphans}
           onCancel={() => setConfirmingOrphans(false)}
+          onAbort={handleAbortOrphans}
         />
       )}
     </div>

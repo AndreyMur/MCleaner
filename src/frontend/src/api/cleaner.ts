@@ -1,5 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { inTauri } from "./env";
+import { cancelOperationOnAbort, delay } from "./safety";
+import type { OperationOptions } from "./safety";
 
 export interface OrphanedPackage {
   name: string;
@@ -15,16 +17,16 @@ export interface CleanerStats {
 export interface CleanResult {
   success: boolean;
   freed: number;
+  aborted?: boolean;
 }
 
 export interface OrphansRemovalResult {
   success: boolean;
   removed: string[];
+  aborted?: boolean;
 }
 
 export type ProgressHandler = (percent: number, message: string) => void;
-
-const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const ORPHAN_SEEDS: OrphanedPackage[] = [
   { name: "libvlc5", version: "3.0.20-3", size: 4_200_000 },
@@ -46,7 +48,7 @@ function normalizeOrphan(raw: Partial<OrphanedPackage>): OrphanedPackage {
 
 export async function getCleanerStats(): Promise<CleanerStats> {
   if (!inTauri()) {
-    await delay(700);
+    await delay(700, undefined, 1);
     return {
       cache_size: mockCacheSize,
       orphans: mockOrphans.map((orphan) => ({ ...orphan })),
@@ -67,7 +69,11 @@ export async function getCleanerStats(): Promise<CleanerStats> {
   }
 }
 
-export async function cleanCache(onProgress?: ProgressHandler): Promise<CleanResult> {
+export async function cleanCache(
+  onProgress?: ProgressHandler,
+  options: OperationOptions = {}
+): Promise<CleanResult> {
+  const { signal } = options;
   if (!inTauri()) {
     const freed = mockCacheSize;
     const steps = [
@@ -77,30 +83,37 @@ export async function cleanCache(onProgress?: ProgressHandler): Promise<CleanRes
       { pct: 90, label: "Finalizing…" },
     ];
     for (const step of steps) {
-      await delay(150);
+      await delay(150, signal);
+      if (signal?.aborted) {
+        onProgress?.(100, "Cache clean aborted");
+        return { success: false, freed: 0, aborted: true };
+      }
       onProgress?.(step.pct, step.label);
     }
     mockCacheSize = 0;
     onProgress?.(100, "Cache cleaned");
-    return { success: true, freed };
+    return { success: true, freed, aborted: false };
   }
   try {
     onProgress?.(10, "Reading cache size…");
     const before = (await invoke<{ cache_size?: number }>("get_dashboard_stats"))?.cache_size ?? 0;
+    cancelOperationOnAbort(signal);
     onProgress?.(50, "Running apt clean…");
     const ok = await invoke<boolean>("clean_cache");
     onProgress?.(100, ok ? "Cache cleaned" : "Clean failed");
-    return { success: ok, freed: ok ? before : 0 };
+    return { success: ok, freed: ok ? before : 0, aborted: Boolean(signal?.aborted) };
   } catch (error) {
     console.error("Failed to clean cache:", error);
     onProgress?.(100, "Cache clean failed");
-    return { success: false, freed: 0 };
+    return { success: false, freed: 0, aborted: Boolean(signal?.aborted) };
   }
 }
 
 export async function removeOrphans(
-  onProgress?: ProgressHandler
+  onProgress?: ProgressHandler,
+  options: OperationOptions = {}
 ): Promise<OrphansRemovalResult> {
+  const { signal } = options;
   if (!inTauri()) {
     const removed = mockOrphans.map((orphan) => orphan.name);
     const steps = [
@@ -109,21 +122,26 @@ export async function removeOrphans(
       { pct: 90, label: "Finalizing…" },
     ];
     for (const step of steps) {
-      await delay(180);
+      await delay(180, signal);
+      if (signal?.aborted) {
+        onProgress?.(100, "Orphan removal aborted");
+        return { success: false, removed: [], aborted: true };
+      }
       onProgress?.(step.pct, step.label);
     }
     mockOrphans = [];
     onProgress?.(100, "Done");
-    return { success: true, removed };
+    return { success: true, removed, aborted: false };
   }
   try {
     onProgress?.(20, "Running apt autoremove…");
+    cancelOperationOnAbort(signal);
     const ok = await invoke<boolean>("run_autoremove");
     onProgress?.(100, ok ? "Orphaned packages removed" : "Autoremove failed");
-    return { success: ok, removed: [] };
+    return { success: ok, removed: [], aborted: Boolean(signal?.aborted) };
   } catch (error) {
     console.error("Failed to remove orphaned packages:", error);
     onProgress?.(100, "Autoremove failed");
-    return { success: false, removed: [] };
+    return { success: false, removed: [], aborted: Boolean(signal?.aborted) };
   }
 }
