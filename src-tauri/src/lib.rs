@@ -34,7 +34,7 @@ static CANCEL_REQUESTED: AtomicBool = AtomicBool::new(false);
 static CURRENT_PID: Mutex<Option<u32>> = Mutex::new(None);
 
 #[tauri::command]
-pub fn get_dashboard_stats() -> Result<DashboardStats, String> {
+fn get_dashboard_stats() -> Result<DashboardStats, String> {
     let cache_size = get_apt_cache_size();
     let package_count = get_apt_package_count();
     let os_name = System::name().unwrap_or_else(|| "Unknown".to_string());
@@ -79,7 +79,7 @@ fn get_apt_package_count() -> u64 {
 }
 
 #[tauri::command]
-pub fn get_installed_packages() -> Vec<PackageInfo> {
+fn get_installed_packages() -> Vec<PackageInfo> {
     let output = Command::new("apt")
         .args(["list", "--installed", "--quiet=2"])
         .output();
@@ -202,7 +202,7 @@ fn privilege_status_struct() -> PrivilegeStatus {
 }
 
 #[tauri::command]
-pub fn get_privilege_status() -> PrivilegeStatus {
+fn get_privilege_status() -> PrivilegeStatus {
     privilege_status_struct()
 }
 
@@ -240,7 +240,7 @@ fn request_elevation_impl() {
 }
 
 #[tauri::command]
-pub fn request_elevation() -> PrivilegeStatus {
+fn request_elevation() -> PrivilegeStatus {
     if !is_elevated() {
         request_elevation_impl();
     }
@@ -317,7 +317,7 @@ fn apt_managed_success(args: Vec<String>) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn clean_cache() -> Result<bool, String> {
+async fn clean_cache() -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(|| {
         apt_managed_success(command_line("apt", &["clean"]))
     })
@@ -326,7 +326,7 @@ pub async fn clean_cache() -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn remove_package(name: String) -> Result<bool, String> {
+async fn remove_package(name: String) -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let command = command_line("apt", &["remove", "-y", "--purge", name.as_str()]);
         apt_managed_success(command)
@@ -336,7 +336,7 @@ pub async fn remove_package(name: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn run_autoremove() -> Result<bool, String> {
+async fn run_autoremove() -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(|| {
         apt_managed_success(command_line("apt", &["autoremove", "-y"]))
     })
@@ -349,7 +349,7 @@ pub async fn run_autoremove() -> Result<bool, String> {
 /// The managed runner polls this flag and kills its child within ~100ms, so
 /// no stale process ids are ever touched from here.
 #[tauri::command]
-pub fn abort_operation() -> bool {
+fn abort_operation() -> bool {
     let had_active = CURRENT_PID.lock().unwrap().is_some();
     CANCEL_REQUESTED.store(true, Ordering::SeqCst);
     had_active
@@ -385,7 +385,7 @@ fn powershell_script_ok(script: &str) -> bool {
 }
 
 #[tauri::command]
-pub fn check_recovery_tool() -> RecoveryInfo {
+fn check_recovery_tool() -> RecoveryInfo {
     match platform_id() {
         "windows" => {
             let probe =
@@ -445,7 +445,7 @@ pub fn check_recovery_tool() -> RecoveryInfo {
 }
 
 #[tauri::command]
-pub async fn create_recovery_point(comment: String) -> Result<RecoveryPointResult, String> {
+async fn create_recovery_point(comment: String) -> Result<RecoveryPointResult, String> {
     let info = check_recovery_tool();
     if !info.available {
         return Ok(RecoveryPointResult {
@@ -522,7 +522,7 @@ fn get_apt_orphans() -> Vec<PackageInfo> {
 }
 
 #[tauri::command]
-pub fn get_orphaned_packages() -> Vec<PackageInfo> {
+fn get_orphaned_packages() -> Vec<PackageInfo> {
     get_apt_orphans()
 }
 
